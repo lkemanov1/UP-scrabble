@@ -1,53 +1,54 @@
+/**
+*
+* Solution to course project # 8
+* Introduction to programming course
+* Faculty of Mathematics and Informatics of Sofia University
+* Winter semester 2020/2021
+*
+* @author Lachezar Kemanov
+* @idnumber 62615
+* @compiler GCC
+*
+* <Main file>
+*
+*/
+
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
 #include <time.h>
 #include <cstring>
+#include<string>
+
 using namespace std;
 
 const int MAX_WORDS = 60000;
 const int FILE_SIZE = 58110;
 const int MAX_LETTERS = 26;
 const int MAX_TILES = 100;
-string word[MAX_WORDS];
-fstream  dictionary;
+
 
 void printMenu()
 {
-    cout<<"************************\n";
-    cout<<"Scrabble\n";
-    cout<<"1) Start new game    \n";
-    cout<<"2) Settings          \n";
-    cout<<"3) Add new word      \n";
-    cout<<"4) Exit!             \n";
-    cout<<"************************\n";
-    cout<<"Select your option:";
+    cout << "----------------------\n";
+    cout << "*      Scrabble      *\n";
+    cout << "----------------------\n";
+    cout << "* 1) Start new game. *\n";
+    cout << "----------------------\n";
+    cout << "* 2)    Settings.    *\n";
+    cout << "----------------------\n";
+    cout << "* 3)  Add new word.  *\n";
+    cout << "----------------------\n";
+    cout << "* 4)      Exit.      *\n";
+    cout << "----------------------\n";
+    cout << "\nSelect your option: ";
 }
 
 /***
 Binary searching through the dictionary to find if the word the player has chosen exists
 */
-int findNearestPosition(int left, int right, string key)
-{
-    if (left > right)
-        return right;
 
-    if (left == right && word[left] != key)
-        return left;
-
-    int middle = (left + right) / 2;
-    ///cout<<middle<<" "<<word[middle]<<endl;
-    if (word[middle] == key)
-        return middle;
-
-    else if (word[middle] > key)
-        return findNearestPosition(left, middle - 1, key);
-
-    else
-        return findNearestPosition(middle + 1, right, key);
-}
-
-bool binSearch(int left, int right, string key)
+bool binSearch(int left, int right, string key, string(&word)[MAX_WORDS])
 {
     if (left > right)
         return false;
@@ -56,31 +57,33 @@ bool binSearch(int left, int right, string key)
         return false;
 
     int middle = (left + right) / 2;
-    ///cout<<middle<<" "<<word[middle]<<endl;
+
     if (word[middle] == key)
         return true;
 
     else if (word[middle] > key)
-        return binSearch(left, middle - 1, key);
+        return binSearch(left, middle - 1, key, word);
 
     else
-        return binSearch(middle + 1, right, key);
+        return binSearch(middle + 1, right, key, word);
 }
 /**
 Checking the correctness of the typed word
 */
-bool wordIsCorrect(string& playerWord, int yourTiles[])
+bool wordIsCorrect(string& playerWord, int(&yourTiles)[MAX_LETTERS])
 {
     int usedTiles[MAX_LETTERS] = { 0 };
 
-    for (int a = 0; a < playerWord.size(); a++)
+    for (unsigned a = 0; a < playerWord.size(); a++)
     {
-        int currentTile = playerWord[a] - 'a';
         /**
         Converting the uppercase letters to lowercase
         */
         if (isupper(playerWord[a]))
             playerWord[a] = tolower(playerWord[a]);
+
+        int currentTile = playerWord[a] - 'a';
+
         /**
         Checking if the word consists of non alphabetical characters
         */
@@ -103,26 +106,28 @@ bool wordIsCorrect(string& playerWord, int yourTiles[])
 void generateTiles(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETTERS])
 {
 
-    int used[MAX_TILES];
-    int letter[MAX_LETTERS];
+    int used[MAX_TILES];/// is the tile used yet. There are several tiles for each letter
+    const int isUsed = 1;
     memset(yourTiles, 0, sizeof(yourTiles));
     cout << "Your tiles are:\n";
 
-    srand(time(NULL));
+    srand(time(NULL));///making sure the random generator is random every time the program runs
     memset(used, 0, sizeof(used));
 
     for (int a = 0; a < givenLetters; a++)
     {
         int tileNumber;
+        ///getting random tile until we get one that is not used yet
         do
         {
             tileNumber = rand() % MAX_TILES;
         } while (used[tileNumber]);
-        used[tileNumber] = 1;
 
-        char newLetter = tile[tileNumber];
-        yourTiles[newLetter - 'a']++;
-        cout << newLetter << " ";
+        used[tileNumber] = isUsed;///marking the used tile as such
+
+        char newTile = tile[tileNumber];
+        yourTiles[newTile - 'a']++;
+        cout << newTile << " ";
     }
     cout << endl;
 }
@@ -130,29 +135,37 @@ void generateTiles(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETT
 int getScore(string playerWord, int scrabblePoints[])
 {
     int playerScore = 0;
-    for (int a = 0; a < playerWord.size(); a++)
+    for (unsigned a = 0; a < playerWord.size(); a++)
     {
-        playerScore += scrabblePoints[playerWord[a] - 'a'];
+        playerScore += scrabblePoints[playerWord[a] - 'a'];///for each letter add the corresponding points
     }
     return playerScore;
 }
 
-bool searchNewWords(int wordCount, string key)
+bool searchNewWords(int wordCount, string key, string(&word)[MAX_WORDS])
 {
-    for(int a=FILE_SIZE; a<wordCount; a++)
+    ///searching the new words which are not sorted so we can't binary search them
+    for (int a = FILE_SIZE; a < wordCount; a++)
     {
-        if(word[a]==key)
+        if (word[a] == key)
             return true;
     }
     return false;
 }
 
 
-int newTurn(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETTERS], int wordCount, int points[])
+int newRound(const int givenLetters, char tile[], int wordCount, int points[], string(&word)[MAX_WORDS])
 {
+    int yourTiles[MAX_LETTERS];
     generateTiles(givenLetters, tile, yourTiles);
     string playerWord;
-    int countOfWrongWords = 0;
+    int countOfWrongWords = 0;///counter if the player has already tried to use invalid word
+
+    /**
+    Typing new word until its valid or the player skips the turn
+    Checking if the word is in the sorted list or in the in the list of new words
+    Checking if the chosen word can be written with the given letters
+    */
     do
     {
         if (countOfWrongWords > 0)
@@ -167,7 +180,7 @@ int newTurn(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETTERS], i
             return 0;
 
         }
-    } while (!(wordIsCorrect(playerWord, yourTiles) && binSearch(0, wordCount, playerWord) || searchNewWords(wordCount,playerWord)));
+    } while (!(wordIsCorrect(playerWord, yourTiles) && (binSearch(0, FILE_SIZE - 1, playerWord, word) || searchNewWords(wordCount, playerWord, word))));
 
     int currentScore = getScore(playerWord, points);
 
@@ -176,51 +189,56 @@ int newTurn(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETTERS], i
 
     return currentScore;
 }
-void newRound(int playableTiles, char tile[], int(&yourTiles)[MAX_LETTERS], int wordCount, int points[], int numberRounds)
+
+void newGame(int playableTiles, char tile[], int wordCount, int points[], int numberRounds, string(&word)[MAX_WORDS])
 {
     system("CLS");
-    unsigned totalScore=0;
+    unsigned totalScore = 0;
     for (int round = 1; round <= numberRounds; round++)
     {
-        totalScore += newTurn(playableTiles, tile, yourTiles, wordCount, points);
+        cout << "Round " << round << endl;
+        totalScore += newRound(playableTiles, tile, wordCount, points, word);
     }
-    char exitButton;
+    string exitButton;
     cout << "Your overall score is: " << totalScore << endl;
-    cout << "Press any key to return to main menu:";
+    cout << "Type something and then press enter to return to main menu:";
     cin >> exitButton;
     system("CLS");
     printMenu();
 }
 
-void settings(int &numberRounds, int &givenLetters)
+void settings(int& numberRounds, int& givenLetters)
 {
     system("CLS");
-    int option=0;
-    cout<<"Settings\n";
-    cout<<"1)Change number of letters\n";
-    cout<<"2)Change number of rounds\n";
-    cout<<"3)Return to main menu\n";
+    int option = 0;
+    cout << "Settings\n";
+    cout << "1)Change number of letters\n";
+    cout << "2)Change number of rounds\n";
+    cout << "3)Return to main menu\n";
 
 
-    while(option!=3)
+    while (option != 3)
     {
-        cout<<"Select your option: ";
-        cin>>option;
-        if(option==1)
+        cout << "Select your option: ";
+        cin >> option;
+        ///changing the number of letters that are given in the game
+        if (option == 1)
         {
-            cout<<endl;
-            cout<<"Change number of letters to:";
-            cin>>givenLetters;
-            cout<<endl;
+            cout << endl;
+            cout << "Change number of letters to:";
+            cin >> givenLetters;
+            cout << endl;
         }
-        else if(option==2)
+        ///changing the number of rounds played
+        else if (option == 2)
         {
-            cout<<endl;
-            cout<<"Change number of rounds to:";
-            cin>>numberRounds;
-            cout<<endl;
+            cout << endl;
+            cout << "Change number of rounds to:";
+            cin >> numberRounds;
+            cout << endl;
         }
-        else if(option==3)
+        ///return to the menu
+        else if (option == 3)
         {
             system("CLS");
             printMenu();
@@ -228,61 +246,103 @@ void settings(int &numberRounds, int &givenLetters)
         }
         else
         {
-            cout<<"Wrong option!\nPlease select again!\n";
+            cout << "No such option!\nPlease select again!\n";
         }
     }
 
 }
-void addNewWord(int &wordCount)
+
+bool validWord(string& newWord)
 {
+    for (unsigned a = 0; a < newWord.size(); a++)
+    {
+        if (!isalpha(newWord[a]))
+        {
+            return false;
+        }
+        if (isupper(newWord[a]))
+        {
+            newWord[a] = tolower(newWord[a]);
+        }
+    }
+    return true;
+}
+void addNewWord(int& wordCount, string(&word)[MAX_WORDS], fstream& dictionary)
+{
+    system("CLS");
     string newWord;
 
-    cout<<"Type in the word you want to add to the dictionary:";
-    int existingWordsCounter=0;
+    cout << "Type in the word you want to add to the dictionary or press x to return to menu: ";
+    int existingWordsCounter = 0;///counter whether a word has been typed already
+
+    /**
+    typing a new word while the word is not in the dictionary
+    or the word does not consist only with English letters
+    or the player decides to return to the menu
+    */
+
     do
     {
-        if(existingWordsCounter>0)
+        if (existingWordsCounter > 0)
         {
-            cout<<"This word is already in the dictionary\n";
-            cout<<"Type in another word or press x to return to main menu\n";
+            cout << "This word is already in the dictionary or is invalid\n";
+            cout << "Type in another word or press x to return to main menu: ";
 
         }
-        cin>>newWord;
-        if(newWord=="x" || newWord=="X")
+
+        cin >> newWord;
+        ///Exit condition
+        if ((newWord == "x" || newWord == "X"))
         {
             system("CLS");
             printMenu();
             return;
         }
-    }while(binSearch(0,wordCount-1,newWord) || searchNewWords(wordCount,newWord));
+        existingWordsCounter++;
+    } while (binSearch(0, wordCount - 1, newWord, word) || searchNewWords(wordCount, newWord, word) || !validWord(newWord));
+
     dictionary.clear();
-    dictionary<<newWord<<endl;
-    word[wordCount++]=newWord;
+    dictionary << endl << newWord;
+    word[wordCount++] = newWord;
     system("CLS");
     printMenu();
 
 }
 
 
-void startMenu(int givenLetters, char tile[], int(&yourTiles)[MAX_LETTERS], int wordCount, int fileSize, int points[], int numberRounds)
+void startMenu(int givenLetters, char tile[], int wordCount, int points[], int numberRounds, string(&word)[MAX_WORDS], fstream& dictionary)
 {
-    int option=0;
     printMenu();
-    while(option!=4)
+    string option = "0";
+    string option1 = "1", option2 = "2", option3 = "3", option4 = "4";
+
+    while (option != option4)
     {
-        cin>>option;
-        if(option==1) newRound(givenLetters,tile,yourTiles,wordCount,points,numberRounds);
-        else if(option==2) settings(numberRounds,givenLetters);
-        else if(option==3) addNewWord(wordCount);
-        else if(option==4) break;
-        else cout<<"\nWrong option.\nPlease choose again.\n";
+        cin >> option;
+
+        if (option == option1)
+        {
+            newGame(givenLetters, tile, wordCount, points, numberRounds, word);
+        }
+        else if (option == option2)
+        {
+            settings(numberRounds, givenLetters);
+        }
+        else if (option == option3)
+        {
+            addNewWord(wordCount, word, dictionary);
+        }
+        else if (option == option4)
+        {
+            cout << "Thank you for playing!!!\n";
+            break;
+        }
+        else
+        {
+            cout << "\nNo such option.\nPlease select again: ";
+        }
     }
 }
-/**
-adding new word to dictionary
-
-*/
-
 
 
 int main()
@@ -290,34 +350,40 @@ int main()
     ifstream tiles("tiles.txt");
     string currWord;
     string currTile;
-    const int MAX_TILES = 101;
+    string word[MAX_WORDS];
+    fstream  dictionary;
+
     char tile[MAX_TILES];
+
     int scrabblePoints[MAX_LETTERS] = { 1, 3, 3, 2, 1, 4, 2, 4, 1,
                                         8, 5, 1, 3, 1, 1, 3, 10,
-                                        1, 1, 1, 1, 4, 4, 8, 4, 10 };
-    int fileSize=0;
+                                        1, 1, 1, 1, 4, 4, 8, 4, 10
+    };
     int wordCount = 0;
     int tileCount = 0;
     int yourTiles[MAX_LETTERS];
     int playableTiles = 10;
     int numberRounds = 5;
+
     dictionary.open("dictionary.txt", ios::app | ios::in | ios::out);
 
     if (!dictionary.is_open() || !tiles.is_open())
+    {
+        cout << "File couldn't open.\n";
         return 0;
-
+    }
     ///reading the words from the file
     while (getline(dictionary, currWord))
     {
         word[wordCount++] = currWord;
     }
-    fileSize=wordCount;
-    ///reading the frequence of the tiles
+    ///reading the frequency of the tiles
     while (getline(tiles, currTile))
     {
         tile[tileCount++] = currTile[0];
     }
-    startMenu(playableTiles,tile,yourTiles,wordCount,fileSize,scrabblePoints,numberRounds);
+
+    startMenu(playableTiles, tile, wordCount, scrabblePoints, numberRounds, word, dictionary);
 
     dictionary.close();
     tiles.close();
