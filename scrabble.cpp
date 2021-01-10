@@ -23,7 +23,7 @@
 using namespace std;
 
 const int MAX_WORDS = 60000;
-const int FILE_SIZE = 58110;
+const int FILE_SIZE = 58110;///sorted words in dictionary
 const int MAX_LETTERS = 26;
 const int MAX_TILES = 100;
 
@@ -132,6 +132,7 @@ void generateTiles(const int givenLetters, char tile[], int(&yourTiles)[MAX_LETT
     cout << endl;
 }
 
+///The function calculates the points which are rewarded for each word the player has written
 int getScore(string playerWord, int scrabblePoints[])
 {
     int playerScore = 0;
@@ -144,7 +145,7 @@ int getScore(string playerWord, int scrabblePoints[])
 
 bool searchNewWords(int wordCount, string key, string(&word)[MAX_WORDS])
 {
-    ///searching the new words which are not sorted so we can't binary search them
+    ///searching the new words which are not sorted
     for (int a = FILE_SIZE; a < wordCount; a++)
     {
         if (word[a] == key)
@@ -153,7 +154,7 @@ bool searchNewWords(int wordCount, string key, string(&word)[MAX_WORDS])
     return false;
 }
 
-
+///This function simulates every round that is played
 int newRound(const int givenLetters, char tile[], int wordCount, int points[], string(&word)[MAX_WORDS])
 {
     int yourTiles[MAX_LETTERS];
@@ -207,6 +208,7 @@ void newGame(int playableTiles, char tile[], int wordCount, int points[], int nu
     printMenu();
 }
 
+///The function executes the setting option from the menu
 void settings(int& numberRounds, int& givenLetters)
 {
     system("CLS");
@@ -226,7 +228,18 @@ void settings(int& numberRounds, int& givenLetters)
         {
             cout << endl;
             cout << "Change number of letters to:";
-            cin >> givenLetters;
+            int wrongParameters = 0;
+            ///validating that the new number is in possible range
+            do
+            {
+                if(wrongParameters > 0)
+                {
+                    cout << "Please enter a natural number in the range of [1;100]: ";
+                }
+                cin >> givenLetters;
+                wrongParameters++;
+            }
+            while(givenLetters <= 0 || givenLetters > MAX_TILES);
             cout << endl;
         }
         ///changing the number of rounds played
@@ -234,7 +247,17 @@ void settings(int& numberRounds, int& givenLetters)
         {
             cout << endl;
             cout << "Change number of rounds to:";
-            cin >> numberRounds;
+            int wrongParameter = 0;
+            do
+            {
+                if(wrongParameter>0)
+                {
+                    cout << "The number of rounds must be a natural number\nPlease try again: ";
+                }
+                cin >> numberRounds;
+                wrongParameter++;
+            }
+            while(numberRounds <= 0);
             cout << endl;
         }
         ///return to the menu
@@ -251,7 +274,8 @@ void settings(int& numberRounds, int& givenLetters)
     }
 
 }
-
+/// The function checks if a word consists not alphabetical characters
+/// and makes the capital letters to lowercase
 bool validWord(string& newWord)
 {
     for (unsigned a = 0; a < newWord.size(); a++)
@@ -267,6 +291,7 @@ bool validWord(string& newWord)
     }
     return true;
 }
+
 void addNewWord(int& wordCount, string(&word)[MAX_WORDS], fstream& dictionary)
 {
     system("CLS");
